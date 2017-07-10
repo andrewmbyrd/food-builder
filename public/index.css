@@ -1,0 +1,21 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: sans-serif;
+}
+
+.main{
+  position: relative;
+  top: 10vh;
+  width: 50vw;
+  margin: 0 auto;
+  border: 1px solid black;
+  text-align: center;
+}
+.food-list{
+  list-style: none;
+}
+
+.food-list:hover{
+  cursor: pointer;
+}
