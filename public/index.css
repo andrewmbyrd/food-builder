@@ -16,6 +16,6 @@ body {
   list-style: none;
 }
 
-.food-list:hover{
+.food-item:hover{
   cursor: pointer;
 }
