@@ -1,17 +1,19 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
+
 class Menu extends React.Component {
   constructor() {
     super();
     this.state = {
-      foods: ["Pizza", "Hamburger", "Hot Dog", "Ice Cream"],
-      selectedFood: null
+      foods: [{"food": "Pizza", "price": 5}, {"food": "Hamburger", "price": 4}, {"food": "Hot Dog", "price": 3}, {"food": "Ice Cream", "price": 4}],
+      selectedFood: null,
+      foodAmount: 0,
+      totalPrice: 0
     };
   }
   
   handleFoodClick(food){
-    console.log(food);
     this.setState({
       selectedFood: food
     })
@@ -21,7 +23,15 @@ class Menu extends React.Component {
     console.log(ingredient);
   }
 
+  handleQuantityChange(event){
+    this.setState({
+      foodAmount: event.target.value
+    })
+  }
   
+  handleConfirmQuantity(){
+    
+  }
   render() {
     let foodList;
     const selectFood = this.handleFoodClick.bind(this);
@@ -31,9 +41,10 @@ class Menu extends React.Component {
     
     return (
       <div className="main">
-        <h1>Hello! Please Select which type of food you would like:</h1>
+        <h1>Menu</h1>
         <FoodItems foods={foodList} onClick={selectFood}/>
-        <h2>What would you like on your {this.state.selectedFood}?</h2>
+        <Counter selectedFood={this.state.selectedFood} onChange={this.handleQuantityChange.bind(this)}/>
+        <AmountSubmit selectedFood={this.state.selectedFood}/>
         <FoodIngredients food={this.state.selectedFood}/>
       </div>  
     );
@@ -41,19 +52,15 @@ class Menu extends React.Component {
 }
 
 class FoodItems extends React.Component{
-  renderFood(food){
-    return(
-      <Food value={food} onClick={this.props.onClick}/>
-    );
-  }
+  
 
   render() {
+    const foods = this.props.foods.map((item, index) =>
+        <li key={index}><Food value={item["food"]} cost={item["price"]} onClick={this.props.onClick}/></li>
+    );
     return (
       <ul className="food-list">
-        {this.renderFood(this.props.foods[0])}
-        {this.renderFood(this.props.foods[1])}
-        {this.renderFood(this.props.foods[2])}
-        {this.renderFood(this.props.foods[3])}
+        {foods}
       </ul>
     );
   }
@@ -66,9 +73,37 @@ class Food extends React.Component {
     return (
       <div className="food-item"
            onClick={() => this.props.onClick(this.props.value)}>
-        <p>{this.props.value}</p>
+        <p className="food-info"><span className="food-name">{this.props.value}</span> <span className="cost">${this.props.cost}</span></p>
       </div>
     );
+  }
+}
+
+class Counter extends React.Component {
+  render(){
+    if(this.props.selectedFood){
+      let counterBox = document.getElementById('counter');
+      return(
+        <div className="counter-section">
+          <h2> How many {this.props.selectedFood}s would you like? </h2>
+          <input id="counter" type="number" onChange={this.props.onChange}></input>
+        </div>
+      );
+    }else{
+      return null;
+    }
+  }
+}
+
+class AmountSubmit extends React.Component {
+  render(){
+    if (this.props.selectedFood){
+      return(
+        <button className="amount-submit" type="button">Select Ingredients for these {this.props.selectedFood}s</button>
+      );
+    }else{
+      return null;
+    }
   }
 }
 
@@ -85,27 +120,33 @@ class FoodIngredients extends React.Component {
 
     switch (this.props.food) {
       case "Pizza":
-        ingredients = ["Pepperoni", "Sausage"];
+        ingredients = ["Pepperoni", "Sausage", "Pineapple", "Peanut Butter", "Gumballs", "Mushrooms", "Ham", "Bacon"];
         break;
       case "Hamburger":
-        ingredients = ["Ketchup", "Pickles"];
+        ingredients = ["Ketchup", "Pickles", "Mustard", "Onions", "Lettuce", "Cheese"];
         break;
       case "Hot Dog":
-        ingredients = ["Relish", "Mustard"];
+        ingredients = ["Relish", "Mustard", "Onions", "Ketchup"];
         break;
       case "Ice Cream":
-        ingredients = ["Chocolate Syrup", "Sprinkles"];
+        ingredients = ["Chocolate Syrup", "Sprinkles", "Gummy Bears", "Strawberries", "Cherry"];
         break;
-      default:
-        ingredients = ["dumb", "stupid"];
     }
-    
-    return(
-      <ul className="ingredient-list">
-        <li>{this.renderIngredient(ingredients[0])}</li>
-        <li>{this.renderIngredient(ingredients[1])}</li>
-      </ul>
-    );
+    if(this.props.food){
+      const specificIngredients = ingredients.map((item, index) => 
+        <li key={index} className="ingredient-item"><Ingredient value={item}/></li>
+      )
+      return(
+        <div className="ingredient-section">
+          <h2>What would you like on your {this.props.food}?</h2>
+          <ul className="ingredient-list">
+            {specificIngredients}
+          </ul>
+        </div>
+      );
+    }else{
+      return null;
+    }
   }
 }
 

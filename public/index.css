@@ -16,6 +16,18 @@ body {
   list-style: none;
 }
 
+.food-item{
+  text-align: left;
+}
+
+.ingredient-item{
+    list-style: none;
+}
+.cost{
+  float: right;
+  margin-right: 2vw;
+}
+
 .food-item:hover{
   cursor: pointer;
 }
