@@ -5,6 +5,20 @@ class CustomFood {
   constructor(food, ingredients){
     this._food = food;
     this._ingredients = ingredients;
+    switch(food){
+      case "Pizza":
+        this._price = 5;
+        break;
+      case "Hamburger":
+        this._price = 4;
+        break;
+      case "Hot Dog":
+        this._price = 3;
+        break;
+      case "Ice Cream":
+        this._price = 4;
+        break;
+    }
   }
   
   get ingredients(){
@@ -13,6 +27,10 @@ class CustomFood {
   
   get food(){
     return this._food;
+  }
+  
+  get price(){
+    return this._price;
   }
   
   set ingredients(ingredients){
@@ -31,18 +49,21 @@ class Menu extends React.Component {
       foods: [{"food": "Pizza", "price": 5}, {"food": "Hamburger", "price": 4}, {"food": "Hot Dog", "price": 3}, {"food": "Ice Cream", "price": 4}],
       selectedFood: null,
       foodAmount: 0,
-      totalPrice: 0, 
       confirmedFood: [],
-      currentOrderIndex: 0,
       hotItem: 0,
-      readyToAddIngredients: false
+      displayItem: 1,
+      readyToAddIngredients: false,
+      currentIngredients: [],
+      orderConfirmPageReady: false,
+      showReceipt: false
     };
   }
   
   handleFoodClick(food){
     this.setState({
       selectedFood: food
-    })
+    });
+    
   }
   
   handleIngredientClick(ingredient){
@@ -60,45 +81,110 @@ class Menu extends React.Component {
     for(let i = 0 ; i < this.state.foodAmount; i++){
       order.push(new CustomFood(this.state.selectedFood, []));
     }
-    
+
     this.setState({
-      confirmedFood: this.state.confirmedFood.concat([order]),
+      confirmedFood: this.state.confirmedFood.concat(order),
       readyToAddIngredients: true
-    })
+    });
+    
   }
   
   handleCheckToggle(event){
-    console.log(event.target.value);
+    const ingIndex = this.state.currentIngredients.indexOf(event.target.value)
+    if ( ingIndex < 0 ){
+      this.setState({
+        currentIngredients: this.state.currentIngredients.concat(event.target.value)
+      });
+    } else{
+      let newList = this.state.currentIngredients;
+      newList.splice(ingIndex, 1);
+      console.log('new list: ' + newList);
+      this.setState({
+        currentIngredients: newList
+      });
+    }
+    console.log(this.state.confirmedFood);
+    
   }
   
   handleNextItem(event){
     event.preventDefault();
-    if(this.state.hotItem < this.state.confirmedFood[this.state.currentOrderIndex].length - 1){
+    this.state.confirmedFood[this.state.hotItem].ingredients = this.state.currentIngredients;
+    this.setState({
+      hotItem: (this.state.hotItem + 1),
+      displayItem: (this.state.displayItem + 1),
+      currentIngredients: []
+    });
+    if(this.state.hotItem >= this.state.confirmedFood.length - 1){
       this.setState({
-        hotItem: (this.state.hotItem + 1)
+        orderConfirmPageReady: true
       })
     }
+    const ings = Array.from(document.getElementsByClassName("ingredient"));
+    ings.forEach((item) => {
+      item.checked = false;
+    })
+  }
+  
+  handlePrevItem(event){
+    event.preventDefault();
+    if(this.state.hotItem > 0){
+      this.setState({
+        hotItem: (this.state.hotItem - 1),
+        currentIngredients: []
+      })
+    }
+    const ings = Array.from(document.getElementsByClassName("ingredient"));
+    ings.forEach((item) => {
+      item.checked = false;
+    })
+  }
+  
+  handleAddMoreFood(){
+    this.setState({
+      orderConfirmPageReady: false,
+      readyToAddIngredients: false,
+      selectedFood: null,
+      foodAmount: 0,
+      displayItem: 1
+    })
+  }
+  
+  handleCompleteOrder(){
+    this.setState({
+      showReceipt: true
+    })
   }
   
   render() {
     let foodList;
     const selectFood = this.handleFoodClick.bind(this);
     foodList = this.state.foods;
-
-    
-    
+    let heading="Menu";
+    if(this.state.showReceipt){
+      heading="Receipt";
+    }
     return (
       <div className="main">
-        <h1>Menu</h1>
+        <h1>{heading}</h1>
         <FoodItems foods={foodList} hide={this.state.readyToAddIngredients} onClick={selectFood}/>
         <Counter selectedFood={this.state.selectedFood} hide={this.state.readyToAddIngredients} onChange={this.handleQuantityChange.bind(this)}/>
         <AmountSubmit amount={this.state.foodAmount}  hide={this.state.readyToAddIngredients} selectedFood={this.state.selectedFood} onClick={this.handleConfirmQuantity.bind(this)}/>
         <FoodIngredients food={this.state.selectedFood} 
                          ready={this.state.readyToAddIngredients} 
-                         currentOrder={this.state.confirmedFood[this.state.currentOrderIndex]} 
-                         currentItem = {this.state.hotItem}
+                         currentItem={this.state.hotItem}
+                         displayItem={this.state.displayItem}
+                         confirmedFood={this.state.confirmedFood}
                          toggleCheck = {this.handleCheckToggle.bind(this)}
-                         nextItem={this.handleNextItem.bind(this)}/>
+                         prevItem={this.handlePrevItem.bind(this)}
+                         nextItem={this.handleNextItem.bind(this)}
+                         show={!this.state.orderConfirmPageReady}/>
+         <ConfirmPage ready={this.state.orderConfirmPageReady} 
+                      allFood={this.state.confirmedFood}
+                      hide={this.state.showReceipt}
+                      onComplete={this.handleCompleteOrder.bind(this)} 
+                      onAddMoreFood={this.handleAddMoreFood.bind(this)}/>
+         <Receipt show={this.state.showReceipt} allFood={this.state.confirmedFood}/>
       </div>  
     );
   }
@@ -179,6 +265,7 @@ class FoodIngredients extends React.Component {
   
   render(){
     let ingredients;
+  
 
     switch (this.props.food) {
       case "Pizza":
@@ -193,21 +280,49 @@ class FoodIngredients extends React.Component {
       case "Ice Cream":
         ingredients = ["Chocolate Syrup", "Sprinkles", "Gummy Bears", "Strawberries", "Cherry"];
         break;
+      default:
+        ingredients = [];
+        break;
+        
     }
-    if(this.props.ready){
+    
+    let buttonText;
+    if (this.props.currentItem < this.props.confirmedFood.length -1){
+      buttonText = "Next Item";
+    }else {
+      buttonText = "Complete Ingredient Specification"
+    }
+    
+    
+    if(this.props.ready && this.props.show){
       const specificIngredients = ingredients.map((item, index) => 
-        <Ingredient value={item} onChange={this.props.toggleCheck}/>
+         <Ingredient value={item} key={index} onChange={this.props.toggleCheck}/>
       )
       return(
         <div className="ingredient-section">
-          <h2>What would you like on {this.props.food} number {this.props.currentItem + 1}?</h2>
+          <h2>What would you like on {this.props.food} number {this.props.displayItem}?</h2>
           <form className="ingredient-list" onSubmit={this.props.nextItem}>
             {specificIngredients}
           
-            <button type="submit">Next Item</button>
+            <button type="submit">{buttonText}</button>
+            
           </form>
+          <PreviousButton hotItem={this.props.currentItem} prevButton={this.props.prevItem} />
         </div>
       );
+    }else{
+      return null;
+    }
+  }
+}
+
+class PreviousButton extends React.Component{
+  render(){
+    if(this.props.hotItem > 0){
+      return (
+        <div>
+          <button onClick={this.props.prevButton}>Previous Item</button>
+        </div>);
     }else{
       return null;
     }
@@ -217,16 +332,87 @@ class FoodIngredients extends React.Component {
 class Ingredient extends React.Component {
   render(){
       return(
-      <div className="ingredient">
-        <input type="checkbox" id={this.props.value} name="ingredient" value={this.props.value} onChange={this.props.onChange}></input>
+      <div>
+        <input className="ingredient" type="checkbox" id={this.props.value} name="ingredient" value={this.props.value} onChange={this.props.onChange}></input>
         <label htmlFor={this.props.value}>{this.props.value}</label>
       </div>
     );
   }
 }
 
+class ConfirmPage extends React.Component {
+  buildList(){
+    
+    if(this.props.ready && !this.props.hide){
+      
+      const foodList=this.props.allFood.map((foodItem, index) =>
+          <li key={index}>{foodItem.food} with {foodItem.ingredients}</li>
+      );
+    
+      return foodList;
+    }
 
+  }
+  
+  render(){
+    
+    const foodList = this.buildList();
+    
+    if (this.props.ready && !this.props.hide){
+      return(
+        <div>
+          <h2>Your order so far includes:</h2>
+          <ul>
+            {foodList}
+          </ul>
+          <button type="button" onClick={this.props.onAddMoreFood}>Add more to this order</button>
+          <button type="button" onClick={this.props.onComplete}>Complete Order</button>
+        </div>
+      );
+    }else{
+      return null;
+    }
+  }
+}
 
+class Receipt extends React.Component{
+  buildList(){
+    
+    if(this.props.show){
+      
+      const foodList=this.props.allFood.map((foodItem, index) =>
+          <li key={index}>{foodItem.food} with {foodItem.ingredients}</li>
+      );
+    
+      return foodList;
+    }
+
+  }
+  render(){
+    const items = this.buildList();
+    let sum=0;
+    this.props.allFood.forEach(function(item){
+      sum += item.price;
+    });
+    if(this.props.show){
+      return(
+        <div>
+          <h3>Thank you for eating with us!</h3>
+          <p>Your Items:</p>
+          <ul>
+            {items}
+          </ul>
+          <p>Total: ${sum}</p>
+          <form>
+            <button type="submit">New Order</button>
+          </form>
+        </div>
+      );
+    }else{
+      return null;
+    }
+  }
+}
 
 ReactDOM.render(<Menu />, document.getElementById('root'));
 
