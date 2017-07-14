@@ -5,12 +5,28 @@ body {
 }
 
 .main{
-  position: relative;
+  display: block;
   top: 10vh;
-  width: 50vw;
-  margin: 0 auto;
-  border: 1px solid black;
+  width: 33vw;
+  min-width: 40rem;
+  height: 60vh;
+  margin: 2rem auto;
   text-align: center;
+  background: white url('background.jpg') no-repeat;
+  background-size: 100% 100%;
+  padding-top: 1rem;
+}
+
+.running{
+  position: relative;
+  width: 33vw;
+  margin: 5px auto;
+  text-align: left;
+  
+}
+
+.reminder{
+  color: red;
 }
 .food-list{
   list-style: none;
@@ -18,14 +34,52 @@ body {
 
 .food-item{
   text-align: left;
+  width: 80%;
+  margin: 0 auto;
 }
 
+.ingredient-list{
+  width: 30%;
+  margin-left: 5rem;
+  text-align: justify;
+}
 .ingredient-item{
     list-style: none;
 }
 .cost{
   float: right;
   margin-right: 2vw;
+}
+
+.btn{
+  margin-top: 1rem;
+  color: white;
+  border-radius: 10px;
+  font-weight: bold;
+  padding: 10px 5px;
+  text-align: center;
+}
+
+.confirm{
+  background: rgba(10,220,70, 0.8);
+}
+
+.warn{
+  background: orange;
+}
+
+
+.order-list{
+  text-align: left;
+}
+
+.confirmation-item{
+  list-style: decimal;
+  margin-left: 2rem;
+}
+
+button:hover{
+  cursor: pointer;
 }
 
 .food-item:hover{

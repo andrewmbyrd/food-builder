@@ -47,11 +47,14 @@ class Menu extends React.Component {
     super();
     this.state = {
       foods: [{"food": "Pizza", "price": 5}, {"food": "Hamburger", "price": 4}, {"food": "Hot Dog", "price": 3}, {"food": "Ice Cream", "price": 4}],
+      hideOptions: false,
       selectedFood: null,
       foodAmount: 0,
       confirmedFood: [],
       hotItem: 0,
       displayItem: 1,
+      askForMore: false,
+      reminderText: false,
       readyToAddIngredients: false,
       currentIngredients: [],
       orderConfirmPageReady: false,
@@ -84,9 +87,51 @@ class Menu extends React.Component {
 
     this.setState({
       confirmedFood: this.state.confirmedFood.concat(order),
-      readyToAddIngredients: true
+      askForMore: true,
+      foodAmount: 0,
+      hideOptions: true,
+      reminderText: false
     });
     
+  }
+  
+  backToOriginal(){
+    let latestFood;
+    if(this.state.confirmedFood[this.state.hotItem]){
+      latestFood = this.state.confirmedFood[this.state.hotItem].food;
+      this.setState({
+        readyToAddIngredients:true,
+        reminderText: false,
+        selectedFood: latestFood
+      });
+    }else{
+      this.setState({
+        orderConfirmPageReady: true,
+        hideOptions: true,
+        reminderText: false,
+        askForMore: false,
+        readyToAddIngredients: true
+      });
+    }
+  
+    
+  }
+  
+  increaseOrder(){
+    this.setState({
+      selectedFood: null,
+      askForMore: false,
+      hideOptions: false,
+      reminderText: true
+    })
+  }
+  
+  proceed(){
+    this.setState({
+      readyToAddIngredients: true,
+      reminderText: false,
+      selectedFood: this.state.confirmedFood[this.state.hotItem].food
+    })
   }
   
   handleCheckToggle(event){
@@ -110,13 +155,18 @@ class Menu extends React.Component {
   handleNextItem(event){
     event.preventDefault();
     this.state.confirmedFood[this.state.hotItem].ingredients = this.state.currentIngredients;
-    this.setState({
-      hotItem: (this.state.hotItem + 1),
-      displayItem: (this.state.displayItem + 1),
-      currentIngredients: []
-    });
+    if(this.state.hotItem < this.state.confirmedFood.length - 1){
+      this.setState({
+        hotItem: (this.state.hotItem + 1),
+        displayItem: (this.state.displayItem + 1),
+        currentIngredients: [],
+        selectedFood: this.state.confirmedFood[this.state.hotItem + 1].food
+      });
+    }
     if(this.state.hotItem >= this.state.confirmedFood.length - 1){
       this.setState({
+        hotItem: (this.state.hotItem + 1),
+        currentIngredients: [],
         orderConfirmPageReady: true
       })
     }
@@ -131,7 +181,8 @@ class Menu extends React.Component {
     if(this.state.hotItem > 0){
       this.setState({
         hotItem: (this.state.hotItem - 1),
-        currentIngredients: []
+        currentIngredients: [],
+        displayItem: this.state.displayItem - 1
       })
     }
     const ings = Array.from(document.getElementsByClassName("ingredient"));
@@ -146,7 +197,9 @@ class Menu extends React.Component {
       readyToAddIngredients: false,
       selectedFood: null,
       foodAmount: 0,
-      displayItem: 1
+      reminderText: true,
+      hideOptions: false,
+      askForMore: false
     })
   }
   
@@ -164,28 +217,52 @@ class Menu extends React.Component {
     if(this.state.showReceipt){
       heading="Receipt";
     }
+    
+    let reminder;
+    if(this.state.reminderText){
+      reminder = "Select Your Additional item."
+    }
     return (
-      <div className="main">
-        <h1>{heading}</h1>
-        <FoodItems foods={foodList} hide={this.state.readyToAddIngredients} onClick={selectFood}/>
-        <Counter selectedFood={this.state.selectedFood} hide={this.state.readyToAddIngredients} onChange={this.handleQuantityChange.bind(this)}/>
-        <AmountSubmit amount={this.state.foodAmount}  hide={this.state.readyToAddIngredients} selectedFood={this.state.selectedFood} onClick={this.handleConfirmQuantity.bind(this)}/>
-        <FoodIngredients food={this.state.selectedFood} 
-                         ready={this.state.readyToAddIngredients} 
-                         currentItem={this.state.hotItem}
-                         displayItem={this.state.displayItem}
-                         confirmedFood={this.state.confirmedFood}
-                         toggleCheck = {this.handleCheckToggle.bind(this)}
-                         prevItem={this.handlePrevItem.bind(this)}
-                         nextItem={this.handleNextItem.bind(this)}
-                         show={!this.state.orderConfirmPageReady}/>
-         <ConfirmPage ready={this.state.orderConfirmPageReady} 
-                      allFood={this.state.confirmedFood}
-                      hide={this.state.showReceipt}
-                      onComplete={this.handleCompleteOrder.bind(this)} 
-                      onAddMoreFood={this.handleAddMoreFood.bind(this)}/>
-         <Receipt show={this.state.showReceipt} allFood={this.state.confirmedFood}/>
-      </div>  
+      <div>
+        <div className="main">
+          <h1>{heading}</h1>
+          <p className="reminder">{reminder}</p>
+          <FoodItems foods={foodList} hide={this.state.readyToAddIngredients} alsoHide={this.state.hideOptions} onClick={selectFood}/>
+          <Counter selectedFood={this.state.selectedFood} hide={this.state.readyToAddIngredients} alsoHide={this.state.hideOptions} onChange={this.handleQuantityChange.bind(this)}/>
+          <AmountSubmit amount={this.state.foodAmount} 
+                        hide={this.state.readyToAddIngredients} 
+                        alsoHide={this.state.hideOptions} 
+                        selectedFood={this.state.selectedFood} 
+                        onClick={this.handleConfirmQuantity.bind(this)}/>
+          <MoreFoodButton askForMore={this.state.askForMore} hide={this.state.readyToAddIngredients} onClick={this.increaseOrder.bind(this)}/>
+          <ProceedToIngredientsButton confirmedFood={this.state.confirmedFood} 
+                                      hide={this.state.readyToAddIngredients} 
+                                      reminderText={this.state.reminderText} 
+                                      onClick={this.proceed.bind(this)}
+                                      onSkip={this.backToOriginal.bind(this)} />
+          <FoodIngredients food={this.state.selectedFood} 
+                           ready={this.state.readyToAddIngredients} 
+                           currentItem={this.state.hotItem}
+                           displayItem={this.state.displayItem}
+                           confirmedFood={this.state.confirmedFood}
+                           toggleCheck = {this.handleCheckToggle.bind(this)}
+                           prevItem={this.handlePrevItem.bind(this)}
+                           nextItem={this.handleNextItem.bind(this)}
+                           show={!this.state.orderConfirmPageReady}/>
+           <ConfirmPage ready={this.state.orderConfirmPageReady} 
+                        allFood={this.state.confirmedFood}
+                        hide={this.state.showReceipt}
+                        onComplete={this.handleCompleteOrder.bind(this)} 
+                        onAddMoreFood={this.handleAddMoreFood.bind(this)}/>
+           <Receipt show={this.state.showReceipt} allFood={this.state.confirmedFood}/>
+        </div> 
+        <div className="running">
+          <RunningOrder confirmedFood={this.state.confirmedFood} 
+                        hotItem={this.state.hotItem} 
+                        ready={this.state.readyToAddIngredients} 
+                        hide={this.state.orderConfirmPageReady}/>
+        </div>
+      </div> 
     );
   }
 }
@@ -197,7 +274,7 @@ class FoodItems extends React.Component{
     const foods = this.props.foods.map((item, index) =>
         <li key={index}><Food value={item["food"]} cost={item["price"]} onClick={this.props.onClick}/></li>
     );
-    if(!this.props.hide){
+    if(!this.props.hide && !this.props.alsoHide){
       return (
         <ul className="food-list">
           {foods}
@@ -222,13 +299,49 @@ class Food extends React.Component {
   }
 }
 
+class MoreFoodButton extends React.Component{
+  render(){
+    if(this.props.askForMore && !this.props.hide){
+        return(
+        <div>
+          <button className="btn warn" onClick={this.props.onClick}>Add More Food</button>
+        </div>
+      );
+    }else{
+      return null
+    }
+  }
+}
+
+class ProceedToIngredientsButton extends React.Component{
+  render(){
+    
+    if(this.props.confirmedFood.length > 0 && !this.props.hide && !this.props.reminderText){
+        return(
+        <div>
+          <button className="btn confirm" onClick={this.props.onClick}>Proceed to Add Ingredients</button>
+        </div>
+      );
+    }else if(this.props.confirmedFood.length > 0 && !this.props.hide && this.props.reminderText){
+      return(
+      <div>
+        <button className="btn warn" onClick={this.props.onSkip}>Just stick with what I already had</button>
+      </div>
+      );
+    }
+    else{ 
+       return null;
+    }
+  }
+}
+
 class Counter extends React.Component {
   render(){
-    if(this.props.selectedFood && !this.props.hide){
+    if(this.props.selectedFood && !this.props.hide && !this.props.alsoHide){
       return(
         <div className="counter-section">
-          <h2 className="counter-prompt"> How many {this.props.selectedFood}s would you like? </h2>
-          <input id="counter" type="number" onChange={this.props.onChange}></input>
+          <h4 className="counter-prompt"> How many {this.props.selectedFood}s would you like? </h4>
+          <input id="counter" type="number" onChange={this.props.onChange} autofocus></input>
         </div>
       );
     }else{
@@ -239,15 +352,11 @@ class Counter extends React.Component {
 
 class AmountSubmit extends React.Component {
   render(){
-    if (this.props.amount && this.props.amount > 0 && !this.props.hide){
-      let buttonText;
-      if (this.props.amount == 1){
-        buttonText = `Proceed to select ingredients for this ${this.props.selectedFood}`;
-      } else {
-        buttonText = `Proceed to select ingredients for these ${this.props.amount} ${this.props.selectedFood}s`;
-      }
+    if (this.props.amount && this.props.amount > 0 && !this.props.hide && !this.props.alsoHide){
+      let buttonText = "Confirm";
+      
       return(
-        <button className="amount-submit" type="button" onClick={() => this.props.onClick()}>{buttonText}</button>
+        <button className="confirm btn" type="button" onClick={() => this.props.onClick()}>{buttonText}</button>
       );
     }else{
       return null;
@@ -272,13 +381,13 @@ class FoodIngredients extends React.Component {
         ingredients = ["Pepperoni", "Sausage", "Pineapple", "Peanut Butter", "Gumballs", "Mushrooms", "Ham", "Bacon"];
         break;
       case "Hamburger":
-        ingredients = ["Ketchup", "Pickles", "Mustard", "Onions", "Lettuce", "Cheese"];
+        ingredients = ["Ketchup", "Pickles", "Mustard", "Onions", "Lettuce", "Cheese", "Mayonnaise", "Bacon"];
         break;
       case "Hot Dog":
         ingredients = ["Relish", "Mustard", "Onions", "Ketchup"];
         break;
       case "Ice Cream":
-        ingredients = ["Chocolate Syrup", "Sprinkles", "Gummy Bears", "Strawberries", "Cherry"];
+        ingredients = ["Chocolate", "Vanilla", "Strawberry", "Chocolate Syrup", "Sprinkles", "Gummy Bears", "Sour Gummy Worms", "Cherry", "Cookie Dough"];
         break;
       default:
         ingredients = [];
@@ -300,14 +409,14 @@ class FoodIngredients extends React.Component {
       )
       return(
         <div className="ingredient-section">
-          <h2>What would you like on {this.props.food} number {this.props.displayItem}?</h2>
-          <form className="ingredient-list" onSubmit={this.props.nextItem}>
+          <h4>What would you like on this {this.props.food}?</h4>
+          <div className="ingredient-list">
             {specificIngredients}
+            <button className="confirm pull-right btn" type="button" onClick={this.props.nextItem}>{buttonText}</button> 
+            <PreviousButton className="back-btn warn btn" hotItem={this.props.currentItem} prevButton={this.props.prevItem} />
+               
+          </div>
           
-            <button type="submit">{buttonText}</button>
-            
-          </form>
-          <PreviousButton hotItem={this.props.currentItem} prevButton={this.props.prevItem} />
         </div>
       );
     }else{
@@ -321,7 +430,7 @@ class PreviousButton extends React.Component{
     if(this.props.hotItem > 0){
       return (
         <div>
-          <button onClick={this.props.prevButton}>Previous Item</button>
+          <button className="warn btn" onClick={this.props.prevButton}>Previous Item</button>
         </div>);
     }else{
       return null;
@@ -331,26 +440,31 @@ class PreviousButton extends React.Component{
 
 class Ingredient extends React.Component {
   render(){
+  
       return(
-      <div>
-        <input className="ingredient" type="checkbox" id={this.props.value} name="ingredient" value={this.props.value} onChange={this.props.onChange}></input>
-        <label htmlFor={this.props.value}>{this.props.value}</label>
-      </div>
-    );
+        <div>
+          <input className="ingredient" type="checkbox" id={this.props.value} name="ingredient" value={this.props.value} onChange={this.props.onChange}></input>
+          <label htmlFor={this.props.value}>{this.props.value}</label>
+        </div>
+    )
+    
   }
 }
 
 class ConfirmPage extends React.Component {
   buildList(){
     
-    if(this.props.ready && !this.props.hide){
-      
-      const foodList=this.props.allFood.map((foodItem, index) =>
-          <li key={index}>{foodItem.food} with {foodItem.ingredients}</li>
-      );
-    
-      return foodList;
-    }
+    const foodList=this.props.allFood.map(function(foodItem, index){
+        let theseIngredients;
+        if (foodItem.ingredients.length>0){
+          theseIngredients = foodItem.ingredients.join(", ");
+        }else{
+          theseIngredients = "No fixin's";
+        }
+        return (<li className="confirmation-item" key={index}>{foodItem.food} with {theseIngredients}</li>);
+    });
+  
+    return foodList;
 
   }
   
@@ -361,12 +475,12 @@ class ConfirmPage extends React.Component {
     if (this.props.ready && !this.props.hide){
       return(
         <div>
-          <h2>Your order so far includes:</h2>
-          <ul>
+          <h4>Your order so far includes:</h4>
+          <ul className="order-list">
             {foodList}
           </ul>
-          <button type="button" onClick={this.props.onAddMoreFood}>Add more to this order</button>
-          <button type="button" onClick={this.props.onComplete}>Complete Order</button>
+          <button className="warn btn pull-left" type="button" onClick={this.props.onAddMoreFood}>Add more to this order</button>
+          <button className="confirm btn pull-right" type="button" onClick={this.props.onComplete}>Complete Order</button>
         </div>
       );
     }else{
@@ -380,9 +494,15 @@ class Receipt extends React.Component{
     
     if(this.props.show){
       
-      const foodList=this.props.allFood.map((foodItem, index) =>
-          <li key={index}>{foodItem.food} with {foodItem.ingredients}</li>
-      );
+      const foodList=this.props.allFood.map(function(foodItem, index){
+          let theseIngredients;
+          if (foodItem.ingredients.length>0){
+            theseIngredients = foodItem.ingredients.join(", ");
+          }else{
+            theseIngredients = "No fixin's";
+          }
+          return (<li className="confirmation-item" key={index}>{foodItem.food} with {theseIngredients}</li>);
+      });
     
       return foodList;
     }
@@ -399,15 +519,46 @@ class Receipt extends React.Component{
         <div>
           <h3>Thank you for eating with us!</h3>
           <p>Your Items:</p>
-          <ul>
+          <ul className="order-list">
             {items}
           </ul>
           <p>Total: ${sum}</p>
           <form>
-            <button type="submit">New Order</button>
+            <button className="btn confirm" type="submit">New Order</button>
           </form>
         </div>
       );
+    }else{
+      return null;
+    }
+  }
+}
+
+class RunningOrder extends React.Component{
+
+  render(){
+    const order = this.props.confirmedFood.concat();
+    const soFar = order.slice(0, this.props.hotItem)
+    
+    const output = soFar.map(function(foodItem){
+        let ingredients;
+        if (foodItem.ingredients){
+          ingredients = foodItem.ingredients.join(", ")
+        }else{
+          ingredients = "No fixin's"
+        }
+        return (<li>A {foodItem.food} with {ingredients} for ${foodItem.price}</li>);
+    })
+    
+    if(this.props.ready && !this.props.hide){
+      return (
+        <div>
+          <p>So far, you've got: </p>
+          <ul className="running-order">
+            {output}
+          </ul>
+        </div>
+      )
     }else{
       return null;
     }
